@@ -3,17 +3,22 @@
   gather_facts: no
  
   tasks:
-  # NTP Status #
-  - name: run ntp commands
-    cisco.ios.ios_command:
-      commands: 
-      - show clock
-      - show ntp associations
-      - show ntp status
-    register: config
-      
+    - name: run ntp commands
+      block:
+
+      - name: run show commands
+        cisco.ios.ios_command:
+          commands: 
+          - show clock
+          - show ntp peers
+          - show ntp status
+        register: config
+        
+      - debug: 
+          var: config
+
   # Save Output #  
-  - name: save output to local directory
-    copy:
-      content: "{{ config.stdout | replace('\\n', '\n') }}"
-      dest: "/tmp/Network/{{ inventory_hostname }}_ntp.ios"
+ ##- name: save output to local directory
+  #  copy:
+  #    content: "{{ config.stdout | replace('\\n', '\n') }}"
+  #    dest: "/tmp/Network/{{ inventory_hostname }}_ntp-nxos.ios"

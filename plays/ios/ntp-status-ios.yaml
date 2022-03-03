@@ -2,7 +2,6 @@
 - hosts: all
   gather_facts: no
 
-
   tasks:
   # NTP Status #
   - name: show clock
@@ -11,20 +10,17 @@
       - show clock
     register: clock
 
-
   - name: show ntp associations
     cisco.ios.ios_command:
       commands: 
         - show ntp associations 
     register: associations 
 
-
   - name: show ntp status
     cisco.ios.ios_command:
       commands: 
         - show ntp status
     register: status
-
 
   # NTP STATUS OUTPUT #
   - name: print show clock
