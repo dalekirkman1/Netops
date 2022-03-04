@@ -1,24 +1,28 @@
----
-- hosts: all
+#NTP Status Playbook
+
+- name: NTP Status Playbook
+  hosts: all
   gather_facts: no
- 
+
   tasks:
-    - name: run ntp commands
-      block:
 
-      - name: run show commands
-        cisco.ios.ios_command:
-          commands: 
-          - show clock
-          - show ntp peers
-          - show ntp status
-        register: config
-        
-      - debug: 
-          var: config
+   - name: Run NTP Show Commands
+     cli_command:
+      command: "{{ item }}"
+     register: result
 
-  # Save Output #  
- ##- name: save output to local directory
-  #  copy:
-  #    content: "{{ config.stdout | replace('\\n', '\n') }}"
-  #    dest: "/tmp/Network/{{ inventory_hostname }}_ntp-nxos.ios"
+     with_items:
+       - show clock
+       - show ntp peer-status
+       - show ntp status
+     
+   - debug:
+       msg:
+         - "{{ result.results[0].stdout_lines }}"
+         - "{{ result.results[1].stdout_lines }}"
+         - "{{ result.results[2].stdout_lines }}"
+
+# Debug output can also be displayed using following lines
+#  - debug:
+#      msg: "{{ item.stdout_lines }}"
+#    with_item
