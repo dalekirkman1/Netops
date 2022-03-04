@@ -1,36 +1,29 @@
----
-- hosts: all
+#NTP Status Playbook
+
+- name: NTP Status Playbook
+  hosts: all
   gather_facts: no
 
   tasks:
-  # NTP Status #
-  - name: show clock
-    cisco.ios.ios_command:
-      commands: 
-      - show clock
-    register: clock
 
-  - name: show ntp associations
-    cisco.ios.ios_command:
-      commands: 
-        - show ntp associations 
-    register: associations 
+   - name: Run NTP Show Commands
+     cli_command:
+      command: "{{ item }}"
+     register: result
 
-  - name: show ntp status
-    cisco.ios.ios_command:
-      commands: 
-        - show ntp status
-    register: status
+     with_items:
+       - show clock
+       - show ntp associations
+       - show ntp status
+     
+   - debug:
+       msg:
+         - "{{ result.results[0].stdout_lines }}"
+         - "{{ result.results[1].stdout_lines }}"
+         - "{{ result.results[2].stdout_lines }}"
 
-  # NTP STATUS OUTPUT #
-  - name: print show clock
-  ansible.builtin.debug:
-    msg: "{{ inventory_hostname }} clock"
 
-  - name: print ntp assocations
-  ansible.builtin.debug:
-    msg: "{{ inventory_hostname }} associations"
-
-  - name: print ntp status
-  ansible.builtin.debug:
-    msg: "{{ inventory_hostname }} status"
+# Debug output can also be displayed using following lines
+#  - debug:
+#      msg: "{{ item.stdout_lines }}"
+#    with_item
