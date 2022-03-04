@@ -5,20 +5,21 @@
 
   vars_prompt:
     - name: mac_address
-      prompt: mac-address? 
+      prompt: mac-address (xxxx.xxxx.xxxx)? 
       private: no
   
   tasks:
-  # Show Mac Address-Table Dynamic #
-    - name: run show mac address-table dyanmic
-      cisco.ios.ios_command:
-        commands: 
-        - show mac address-table dynamic | i {{mac_address}}
-      register: config
-      
-  # Save Output #
-    - name: save output to local directory
-      copy:
-        content: "{{ config.stdout | replace('\\n', '\n') }}"
-        dest:  /tmp/{{ inventory_hostname }}_mac-address-search.txt
+  - name: Get the config
+    cli_command:
+      command: "{{ item }}"
+    register: result
+
+
+    with_items:
+     - show mac address-table dynamic | i {{mac_address}}
+
+
+  - debug:
+      msg:
+       - "{{ result.results[0].stdout_lines }}"
         
