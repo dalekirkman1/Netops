@@ -1,0 +1,32 @@
+#Interface Information Playbook
+
+- name: Interface Information Playbook
+  hosts: all
+  gather_facts: no
+
+  tasks:
+   - name: Run Show Commands
+     cli_command:
+      command: "{{ item }}"
+     register: result
+
+
+     with_items:
+       - show ip arp
+       - show ip route
+       - show int status
+       - show ip int brief
+       - show mac address-table
+
+   - debug:
+       msg:
+         - "{{ result.results[0].stdout_lines }}"
+         - "{{ result.results[1].stdout_lines }}"
+         - "{{ result.results[2].stdout_lines }}"
+         - "{{ result.results[3].stdout_lines }}"
+         - "{{ result.results[4].stdout_lines }}"
+
+# Debug output can also be displayed using following lines
+#  - debug:
+#      msg: "{{ item.stdout_lines }}"
+#    with_item
