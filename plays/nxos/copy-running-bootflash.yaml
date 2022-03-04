@@ -1,0 +1,16 @@
+#Copy Running-Config too Bootflash
+
+- name: Copy Running-Config to Bootflash
+  hosts: all 
+  gather_facts: no 
+
+  tasks:
+
+    - name: copy running-config to bootflash 
+
+
+      cisco.ios.ios_command: 
+        commands:  
+        - copy running-config bootflash:Config_Backup
+
+      register: config 
