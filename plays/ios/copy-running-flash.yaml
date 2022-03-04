@@ -1,0 +1,15 @@
+#Copy Running Config too Flash
+
+- name: Copy Running-Config to Flash
+  hosts: all 
+  gather_facts: no 
+
+  tasks:
+
+    - name: copy running-config to flash 
+
+      cisco.ios.ios_command: 
+        commands:  
+        - copy running-config flash:Config_Backup
+
+      register: config 
