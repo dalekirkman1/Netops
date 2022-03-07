@@ -1,108 +1,94 @@
 ---
 - name: NXOS Switch Upgrade
   hosts: nxos
+  roles:
+    - role: '/home/globaladmin/Netops/roles/nxos_upgrade'
   gather_facts: yes
  
   vars_prompt:
   # SWITCH VARS #
-   - name: switch_username
-     prompt: "Username?"
-     private: False
-   - name: switch_password
-     prompt: "Password?"
-   - name: firmware_nxos_filename
-     prompt: "nxos firmware filename?"
+    - name: switch_username
+      prompt: "Username?"
+      private: no
+    - name: switch_password
+      prompt: "Password?"
+      private: yes
+    - name: upgrade_nxos_firmware_filename
+      prompt: "upgrade nxos firmware filename?"
+      private: no
+    - name: md5_sum
+      prompt: "md5sum of upgrade file?"  
+      private: no
   # SCP SERVER VARS #      
-   - name: scp_ip_address
-     prompt: "SCP Server IP Address?" 
-   - name: scp_user
-     prompt: "SCP Server Username?" 
-   - name: scp_password
-     prompt: "SCP Server Password?"
-   - name: scp_file_location
-     prompt: "filepath on scp server (include file to be copied)?" 
-     
-   roles:
-    - nxos_upgrade 
-  
-tasks:
-#  1. BACKUPS CONFIG
-#  2. COPY NXOS UPGRADE FILE
-#  3. CHECK MD5
-#  4. CHECK RUNNING NXOS VERSION
-#  5. CHECK FOR CONFIGURATION INCOMPATIBILITY
-#  6. UPDATE NXOS BOOT OPTION
-#  7. SAVE CONFIG
-#  8. UPGRADE
-#  9. POST UPGRADE CHECK   
- 
+    - name: scp_ip_address
+      prompt: "SCP Server IP Address?" 
+      private: no
+    - name: scp_user
+      prompt: "SCP Server Username?" 
+      private: no
+    - name: scp_password
+      prompt: "SCP Server Password?"
+      private: yes
+    - name: scp_file_location
+      prompt: "filepath on scp server (include file to be copied)?" 
+      private: no
+
+  tasks:
     # 1.BACKUPS CONFIG #
     - name: run show running-config
-    cisco.ios.ios_command:
-      commands: 
-      - show running-config
-    register: config
+      cisco.ios.ios_command:
+        commands: 
+        - show running-config
+      register: config
    
     - name: save output to local directory
-    copy:
-      content: "{{ config.stdout | replace('\\n', '\n') }}"
-      dest: "/tmp/Network/{{ inventory_hostname }}_running-config.ios"
+      copy:
+        content: "{{ config.stdout | replace('\\n', '\n') }}"
+        dest: "/tmp/Network/{{ inventory_hostname }}_running-config.ios"
  
     # 2.COPY NXOS UPGRADE FILE  #
-      - name: initiate file copy from device
-        cisco.nxos.nxos_file_copy:
-            file_pull: true
-            file_pull_protocol: scp
-            local_file: {{ firmware_nxos_filename }}
-            remote_file: {{ scp_file_location }}
-            remote_scp_server: {{ scp_ip_address }}
-            remote_scp_server_user: {{ scp_user }}
-            remote_scp_server_password: {{ scp_password }} 
-            vrf: management
+    - name: initiate file copy from device
+      cisco.nxos.nxos_file_copy:
+          file_pull: true
+          file_pull_protocol: scp
+          local_file: {{ firmware_nxos_filename }}
+          remote_file: {{ scp_file_location }}
+          remote_scp_server: {{ scp_ip_address }}
+          remote_scp_server_user: {{ scp_user }}
+          remote_scp_server_password: {{ scp_password }} 
+          vrf: management
  
     # 3.CHECK MD5 #
-      - name: Check MD5 Sum
-        nxos_command:
-          commands:
-            - "show file bootflash:{{item.file_name }} md5sum"
-          provider: "{{ nxos_provider }}"
-        with_items:
-          - "{{ image }}"
-        register: output
+    - name: Check MD5 Sum
+      nxos_command:
+        commands:
+          - "show file bootflash:{{upgrade_nxos_firmware_filename}} md5sum"
+      register: output
  
-      - name: Print MD5 As Calculated On The Switch
-        debug: msg="{{output['results'][0]['stdout'][0]['file_content_md5sum'][:-1]}}"
-      - name: Assert that MD5 on Switch Is Correct
-        assert:
-          that:
-            - output['results'][0]['stdout'][0]['file_content_md5sum'][:-1] == "{{ item.md5 }}"
-        with_items:
-          - "{{ image }}"
- 
-    ---
+    - name: Print MD5 As Calculated On The Switch
+      debug: msg="{{output['results'][0]['stdout'][0]['file_content_md5sum'][:-1]}}"
+    - name: Assert that MD5 on Switch Is Correct
+      assert:
+        that:
+          - output['results'][0]['stdout'][0]['file_content_md5sum'][:-1] == "{{ md5_sum }}"
+      with_items:
+        - "{{ image }}"
+
     # 4.CHECK RUNNING NXOS VERSION #
-        - name: Check running NXOS code version
-          nxos_command:
-            command: show version
-            host: "{{ inventory_hostname }}"
-            username: "{{ switch_username }}"
-            password: "{{ switch_password }}"
-            type: show
-        register: show_version
-        when: show_version is not defined
-        tags:
-            - nxos_upgrade
-            - fw_upgrade
+    - name: Check running NXOS code version
+      nxos_command:
+        command: show version
+      register: show_version
+      when: show_version is not defined
+      tags:
+      - nxos_upgrade
+      - fw_upgrade
         
     # 5.CHECK FOR CONFIGURATION INCOMPATIBILITY #    
         - block:
             - name: Check for configuration incompatibility
               nxos_command:
-                command: "show incompatibility-all nxos {{ firmware_nxos_filename }}"
-                host: "{{ inventory_hostname }}"
-                username: "{{ switch_username }}"
-                password: "{{ switch_password }}"
-                type: show
+                command: "show incompatibility-all nxos bootfalsh:{{ firmware_nxos_filename }}"
               register: nxos_incompatibility
             - name: Fail if incompatibilities are detected.
               fail:
@@ -147,7 +133,6 @@ tasks:
             timeout: 300
             
     # 9.POST UPGRADE CHECK # 
-        
         - name: Check running NXOS code version
           nxos_command:
             command: show version
