@@ -11,5 +11,5 @@
 
       cisco.ios.ios_command: 
         commands:  
-        - copy running-config bootflash:backup.$(TIMESTAMP)
+        - copy running-config bootflash:backupcfg.$(TIMESTAMP)
       register: config 
