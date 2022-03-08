@@ -85,40 +85,31 @@
       - fw_upgrade
         
     # 5.CHECK FOR CONFIGURATION INCOMPATIBILITY #    
-        - block:
-            - name: Check for configuration incompatibility
-              nxos_command:
-                command: "show incompatibility-all nxos bootfalsh:{{ firmware_nxos_filename }}"
-              register: nxos_incompatibility
-            - name: Fail if incompatibilities are detected.
-              fail:
-                msg: "Incompatibilites detected in firmware upgrade: {{ nxos_incompatibility.response[0].body.TABLE_incompat_all.ROW_incompat_all }}"
+    - block:
+      - name: Check for configuration incompatibility
+          nxos_command:
+            command: "show incompatibility-all nxos bootfalsh:{{ firmware_nxos_filename }}"
+            register: nxos_incompatibility
+          - name: Fail if incompatibilities are detected.
+            fail:
+              msg: "Incompatibilites detected in firmware upgrade: {{ nxos_incompatibility.response[0].body.TABLE_incompat_all.ROW_incompat_all }}"
             when: (firmware_nxos_filename != "{{ show_version.response[0].body.kick_file_name | basename }}") and
           (nxos_incompatibility.response[0].body.TABLE_incompat_all.ROW_incompat_all[1].Str1 != "No incompatible configurations")
  
     # 6.UPDATE NXOS BOOT OPTION #    
-        - name: Set switch to boot from new NXOS
+      - name: Set switch to boot from new NXOS
           nxos_command:
             command: "boot nxos bootflash:/{{ firmware_nxos_filename }}"
-            host: "{{ inventory_hostname }}"
-            username: "{{ switch_username }}"
-            password: "{{ switch_password }}"
             type: config
  
     # 7.SAVE CONFIG #
         - name: Save config with new NXOS boot command
           nxos_config:
             save: True
-            host: "{{ inventory_hostname }}"
-            username: "{{ switch_username }}"
-            password: "{{ switch_password }}"
             
     # 8.UPGRADE #
         - name: Upgrade NXOS firmware (This will take an extended period of time.)
           nxos_upgrade:
-            host: "{{ inventory_hostname }}"
-            username: "{{ switch_username }}"
-            password: "{{ switch_password }}"
             filename: "{{ firmware_nxos_filename }}"
             type: nxos
             log: "{{ enable_logging }}"
